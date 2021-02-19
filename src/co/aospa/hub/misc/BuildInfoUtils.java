@@ -27,6 +27,9 @@ public final class BuildInfoUtils {
     }
 
     public static String getBuildVersion() {
-        return SystemProperties.get(Constants.PROP_BUILD_VERSION);
+        String majorVersion = SystemProperties.get(Constants.PROP_BUILD_VERSION);
+        String versionCode = SystemProperties.get(Constants.PROP_VERSION_CODE);
+        String variant = SystemProperties.get(Constants.PROP_RELEASE_TYPE);
+        return majorVersion + " " + versionCode + " " + variant;
     }
 }

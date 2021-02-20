@@ -20,10 +20,12 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.SystemProperties;
 import android.os.storage.StorageManager;
@@ -46,6 +48,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -57,6 +60,10 @@ import java.util.zip.ZipFile;
 public class Utils {
 
     private static final String TAG = "Utils";
+
+    private static final int BATTERY_PLUGGED_ANY = BatteryManager.BATTERY_PLUGGED_AC
+            | BatteryManager.BATTERY_PLUGGED_USB
+            | BatteryManager.BATTERY_PLUGGED_WIRELESS;
 
     private Utils() {
     }
@@ -95,7 +102,12 @@ public class Utils {
     }
 
     public static boolean isCompatible(UpdateBaseInfo update) {
-        if (update.getVersion().compareTo(SystemProperties.get(Constants.PROP_BUILD_VERSION)) < 0) {
+        String[] signedBuilds = new String[]{"Alpha", "Beta", "Release"};
+        List<String> signed = Arrays.asList(signedBuilds);
+        String[] upgradeVersion = update.getVersion().split("-");
+        String[] currentVersion = SystemProperties.get(Constants.PROP_VERSION_CODE).split("-");
+        if (upgradeVersion[0].equalsIgnoreCase(currentVersion[0]) && upgradeVersion[1].compareToIgnoreCase(currentVersion[1]) > -1
+                && (signed.contains(upgradeVersion[4]) && signed.contains(upgradeVersion[4]))) {
             Log.d(TAG, update.getName() + " is older than current Android version");
             return false;
         }
@@ -109,13 +121,6 @@ public class Utils {
             return false;
         }
         return true;
-    }
-
-    public static boolean canInstall(UpdateBaseInfo update) {
-        return (SystemProperties.getBoolean(Constants.PROP_UPDATER_ALLOW_DOWNGRADING, false) ||
-                update.getTimestamp() > SystemProperties.getLong(Constants.PROP_BUILD_DATE, 0)) &&
-                update.getVersion().equalsIgnoreCase(
-                        SystemProperties.get(Constants.PROP_BUILD_VERSION));
     }
 
     public static List<UpdateInfo> parseJson(File file, boolean compatibleOnly)
@@ -163,11 +168,6 @@ public class Utils {
         return serverUrl.replace("{device}", device)
                 .replace("{type}", type)
                 .replace("{incr}", incrementalVersion);
-    }
-
-    public static String getUpgradeBlockedURL(Context context) {
-        String device = SystemProperties.get(Constants.PROP_DEVICE);
-        return context.getString(R.string.blocked_update_info_url, device);
     }
 
     public static String getChangelogURL(Context context) {
@@ -401,5 +401,20 @@ public class Utils {
 
     public static boolean isRecoveryUpdateExecPresent() {
         return new File(Constants.UPDATE_RECOVERY_EXEC).exists();
+    }
+
+    public static boolean isBatteryLevelOk(Context context) {
+        Intent intent = context.registerReceiver(null,
+                new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (!intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false)) {
+            return true;
+        }
+        int percent = Math.round(100.f * intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 100) /
+                intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100));
+        int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0);
+        int required = (plugged & BATTERY_PLUGGED_ANY) != 0 ?
+                context.getResources().getInteger(R.integer.battery_ok_percentage_charging) :
+                context.getResources().getInteger(R.integer.battery_ok_percentage_discharging);
+        return percent >= required;
     }
 }

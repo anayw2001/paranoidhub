@@ -8,17 +8,25 @@
     android:orientation="vertical"
     tools:context=".UpdatesActivity">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:background="@color/scrim_background"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" />
+
     <LinearLayout
         android:id="@+id/download_header"
         android:orientation="vertical"
+        android:showDividers="end"
+        android:layout_below="@id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="256dp"
             android:orientation="vertical"
-            android:background="@drawable/ui_scrim_downloading">
+            android:background="@color/scrim_background">
 
             <androidx.appcompat.widget.Toolbar
                 android:layout_width="match_parent"
@@ -84,6 +92,7 @@
                         tools:fontFamily="sans-serif"
                         android:textColor="?android:textColorPrimary"/>
                     <TextView
+                        android:id="@+id/version_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Ruby Alpha 1"
@@ -93,7 +102,13 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Download button -->
+    <TextView
+        android:id="@+id/update_version"
+        android:layout_below="@id/download_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="hello" />
+
     <Button
         android:id="@+id/control_button"
         android:layout_width="wrap_content"

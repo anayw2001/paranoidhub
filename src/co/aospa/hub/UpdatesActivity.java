@@ -26,9 +26,9 @@ import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DateFormat;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.SystemProperties;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -39,7 +39,6 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.Switch;
@@ -52,9 +51,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.preference.PreferenceManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.SimpleItemAnimator;
+
+import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONException;
 import co.aospa.hub.controller.UpdaterController;
@@ -64,8 +62,8 @@ import co.aospa.hub.misc.BuildInfoUtils;
 import co.aospa.hub.misc.Constants;
 import co.aospa.hub.misc.StringGenerator;
 import co.aospa.hub.misc.Utils;
-import co.aospa.hub.model.Update;
 import co.aospa.hub.model.UpdateInfo;
+import co.aospa.hub.model.UpdateStatus;
 import co.aospa.hub.ui.UpdateProgressView;
 
 import java.io.File;
@@ -76,6 +74,17 @@ import java.util.UUID;
 
 public class UpdatesActivity extends AppCompatActivity {
 
+    private enum Action {
+        DOWNLOAD,
+        PAUSE,
+        RESUME,
+        INSTALL,
+        INFO,
+        RETRY_DOWNLOAD,
+        CANCEL_INSTALLATION,
+        REBOOT,
+    }
+
     private static final String TAG = "UpdatesActivity";
     private UpdaterService mUpdaterService;
     private BroadcastReceiver mBroadcastReceiver;
@@ -84,7 +93,8 @@ public class UpdatesActivity extends AppCompatActivity {
     private RotateAnimation mRefreshAnimation;
 
     private UpdaterController mUpdaterController;
-    private Button mControlButton;
+    private MaterialButton mControlButton;
+    private MaterialButton mCancelButton;
     private UpdateProgressView mProgressView;
     private View mIdleGroupIcon;
     private TextView mHeaderMsg;
@@ -102,6 +112,7 @@ public class UpdatesActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mControlButton = findViewById(R.id.control_button);
+        mCancelButton = findViewById(R.id.cancel_button);
         mHeaderMsg = findViewById(R.id.header_msg);
         mProgressText = findViewById(R.id.progress_text);
         mIdleGroupIcon = findViewById(R.id.idle_placeholder);
@@ -110,7 +121,8 @@ public class UpdatesActivity extends AppCompatActivity {
         versionText.setText(BuildInfoUtils.getBuildVersion());
         mUpgradeVersion = findViewById(R.id.update_version);
 
-        mControlButton.setVisibility(View.INVISIBLE);
+        mControlButton.setVisibility(View.GONE);
+        mCancelButton.setVisibility(View.GONE);
 
         mBroadcastReceiver = new BroadcastReceiver() {
             @Override
@@ -134,18 +146,21 @@ public class UpdatesActivity extends AppCompatActivity {
     }
 
     private void handleProgressUpdate(String downloadId) {
-        UpdateInfo update = mUpdaterService.getUpdaterController().getUpdate(downloadId);
+        UpdateInfo update = mUpdaterController.getUpdate(downloadId);
         switch (update.getStatus()) {
             case DOWNLOADING:
-                mHeaderMsg.setText(R.string.downloading_notification);
-                mProgressView.setProgress(update.getProgress());
+                mProgressView.setProgress(update.getProgress()/100.f);
                 mProgressText.setText(update.getProgress() + "%");
-            break;
+                break;
             case INSTALLING:
-                mHeaderMsg.setText(R.string.installing_update);
-                mProgressView.setProgress(update.getInstallProgress());
+                boolean notAB = !mUpdaterController.isInstallingABUpdate();
+                mHeaderMsg.setText(notAB ? R.string.dialog_prepare_zip_message :
+                        update.getFinalizing() ?
+                                R.string.finalizing_package :
+                                R.string.preparing_ota_first_boot);
+                mProgressView.setProgress(update.getInstallProgress()/100.f);
                 mProgressText.setText(update.getInstallProgress() + "%");
-            break;
+                break;
         }
     }
 
@@ -231,6 +246,7 @@ public class UpdatesActivity extends AppCompatActivity {
         boolean newUpdates = false;
 
         List<UpdateInfo> updates = Utils.parseJson(jsonFile, true);
+        Log.d(TAG, updates.toString());
         List<String> updatesOnline = new ArrayList<>();
         for (UpdateInfo update : updates) {
             newUpdates |= mUpdaterController.addUpdate(update);
@@ -241,16 +257,31 @@ public class UpdatesActivity extends AppCompatActivity {
         List<UpdateInfo> sortedUpdates = mUpdaterController.getUpdates();
         if (sortedUpdates.isEmpty()) {
             mHeaderMsg.setText("Your system is up to date.");
+            mControlButton.setVisibility(View.GONE);
         } else {
             sortedUpdates.sort((u1, u2) -> Long.compare(u2.getTimestamp(), u1.getTimestamp()));
             mHeaderMsg.setText("System update available.");
             mControlButton.setVisibility(View.VISIBLE);
-            mControlButton.setOnClickListener(v ->  {
-                mControlButton.setText("Pause");
-                Drawable pause = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_pause, getTheme());
-                mControlButton.setCompoundDrawablesWithIntrinsicBounds(pause, null, null, null);
-                startDownloadWithWarning(sortedUpdates.get(0).getDownloadId());
-            });
+            UpdateInfo update = sortedUpdates.get(0);
+            boolean activeLayout;
+            switch (update.getPersistentStatus()) {
+                case UpdateStatus.Persistent.UNKNOWN:
+                    activeLayout = update.getStatus() == UpdateStatus.STARTING;
+                    break;
+                case UpdateStatus.Persistent.VERIFIED:
+                    activeLayout = update.getStatus() == UpdateStatus.INSTALLING;
+                    break;
+                case UpdateStatus.Persistent.INCOMPLETE:
+                    activeLayout = true;
+                    break;
+                default:
+                    throw new RuntimeException("Unknown update status");
+            }
+            if (activeLayout) {
+                handleActiveStatus(update);
+            } else {
+                handleNotActiveStatus(update);
+            }
         }
     }
 
@@ -338,37 +369,30 @@ public class UpdatesActivity extends AppCompatActivity {
     }
 
     private void handleDownloadStatusChange(String downloadId) {
-        UpdateInfo update = mUpdaterService.getUpdaterController().getUpdate(downloadId);
+        UpdateInfo update = mUpdaterController.getUpdate(downloadId);
         switch (update.getStatus()) {
             case PAUSED:
                 mHeaderMsg.setText("Update download paused.");
                 mProgressView.setVisibility(View.INVISIBLE);
                 mProgressText.setVisibility(View.INVISIBLE);
-                mControlButton.setText("Resume");
-                Drawable resume = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_resume, getTheme());
-                mControlButton.setCompoundDrawablesWithIntrinsicBounds(resume, null, null, null);
+                setButtonAction(mControlButton, Action.RESUME, downloadId, true);
             case PAUSED_ERROR:
                 mHeaderMsg.setText(R.string.snack_download_failed);
                 mProgressView.setVisibility(View.INVISIBLE);
                 mIdleGroupIcon.setVisibility(View.VISIBLE);
+                setButtonAction(mControlButton, Action.RETRY_DOWNLOAD, downloadId, true);
                 break;
             case VERIFICATION_FAILED:
                 mHeaderMsg.setText(R.string.snack_download_verification_failed);
                 mProgressView.setVisibility(View.INVISIBLE);
                 mIdleGroupIcon.setVisibility(View.VISIBLE);
-                mControlButton.setText(R.string.retry);
-                Drawable retry = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_retry, getTheme());
-                mControlButton.setCompoundDrawablesWithIntrinsicBounds(retry, null, null, null);
-                mControlButton.setOnClickListener(v -> startDownloadWithWarning(downloadId));
+                setButtonAction(mControlButton, Action.RETRY_DOWNLOAD, downloadId, true);
                 break;
             case VERIFIED:
                 mHeaderMsg.setText(R.string.snack_download_verified);
                 mProgressView.setVisibility(View.INVISIBLE);
                 mIdleGroupIcon.setVisibility(View.VISIBLE);
-                mControlButton.setText(R.string.action_install);
-                Drawable apply = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_install, getTheme());
-                mControlButton.setCompoundDrawablesWithIntrinsicBounds(apply, null, null, null);
-                mControlButton.setOnClickListener(v -> getInstallDialog(downloadId));
+                setButtonAction(mControlButton, Action.INSTALL, downloadId, true);
                 break;
         }
     }
@@ -477,7 +501,9 @@ public class UpdatesActivity extends AppCompatActivity {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         boolean warn = preferences.getBoolean(Constants.PREF_MOBILE_DATA_WARNING, true);
         if (Utils.isOnWifiOrEthernet(this) || !warn) {
+            mHeaderMsg.setText(R.string.downloading_notification);
             mUpdaterController.startDownload(downloadId);
+            setButtonAction(mControlButton, Action.PAUSE, downloadId, true);
             return;
         }
 
@@ -497,6 +523,8 @@ public class UpdatesActivity extends AppCompatActivity {
                                         .apply();
                                 this.supportInvalidateOptionsMenu();
                             }
+                            mHeaderMsg.setText(R.string.downloading_notification);
+                            setButtonAction(mControlButton, Action.PAUSE, downloadId, true);
                             mUpdaterController.startDownload(downloadId);
                         })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -536,7 +564,184 @@ public class UpdatesActivity extends AppCompatActivity {
                 .setMessage(getString(resId, buildInfoText,
                         getString(android.R.string.ok)))
                 .setPositiveButton(android.R.string.ok,
-                        (dialog, which) -> Utils.triggerUpdate(this, downloadId))
+                        (dialog, which) -> {
+                            mProgressText.setVisibility(View.VISIBLE);
+                            mProgressView.setVisibility(View.VISIBLE);
+                            mIdleGroupIcon.setVisibility(View.INVISIBLE);
+                            setButtonAction(mControlButton, Action.CANCEL_INSTALLATION, downloadId, true);
+                            Utils.triggerUpdate(this, downloadId);
+                            boolean notAB = !mUpdaterController.isInstallingABUpdate();
+                            mHeaderMsg.setText(notAB ? R.string.dialog_prepare_zip_message :
+                                    update.getFinalizing() ?
+                                            R.string.finalizing_package :
+                                            R.string.preparing_ota_first_boot);
+                        })
                 .setNegativeButton(android.R.string.cancel, null);
+    }
+
+    private AlertDialog.Builder getCancelInstallationDialog(final String downloadId) {
+        return new AlertDialog.Builder(this, R.style.AlertDialogTheme)
+                .setMessage(R.string.cancel_installation_dialog_message)
+                .setPositiveButton(android.R.string.ok,
+                        (dialog, which) -> {
+                            mHeaderMsg.setText("Install update");
+                            setButtonAction(mControlButton, Action.INSTALL, downloadId, true);
+                            mProgressText.setVisibility(View.INVISIBLE);
+                            mProgressView.setVisibility(View.INVISIBLE);
+                            mIdleGroupIcon.setVisibility(View.VISIBLE);
+                            Intent intent = new Intent(this, UpdaterService.class);
+                            intent.setAction(UpdaterService.ACTION_INSTALL_STOP);
+                            startService(intent);
+                        })
+                .setNegativeButton(android.R.string.cancel, null);
+    }
+
+    private void setButtonAction(MaterialButton button, Action action, final String downloadId,
+                                 boolean enabled) {
+        final View.OnClickListener clickListener;
+        switch (action) {
+            case DOWNLOAD:
+                button.setIcon(ResourcesCompat.getDrawable(getResources(), R.drawable.ic_download, getTheme()));
+                button.setEnabled(enabled);
+                clickListener = enabled ? view -> {
+                    mProgressText.setVisibility(View.VISIBLE);
+                    mProgressView.setVisibility(View.VISIBLE);
+                    mIdleGroupIcon.setVisibility(View.INVISIBLE);
+                    startDownloadWithWarning(downloadId);
+                } : null;
+                break;
+            case PAUSE:
+                button.setIcon(ResourcesCompat.getDrawable(getResources(), R.drawable.ic_pause, getTheme()));
+                button.setEnabled(enabled);
+                clickListener = enabled ? view -> mUpdaterController.pauseDownload(downloadId)
+                        : null;
+                break;
+            case RESUME: {
+                button.setText("Resume");
+                button.setIcon(ResourcesCompat.getDrawable(getResources(), R.drawable.ic_resume, getTheme()));
+                button.setEnabled(enabled);
+                UpdateInfo update = mUpdaterController.getUpdate(downloadId);
+                final boolean canInstall = Utils.isCompatible(update) ||
+                        update.getFile().length() == update.getFileSize();
+                clickListener = enabled ? view -> {
+                    if (canInstall) {
+                        mUpdaterController.resumeDownload(downloadId);
+                    } else {
+                        mHeaderMsg.setText(R.string.snack_update_not_installable);
+                    }
+                } : null;
+            }
+            break;
+            case INSTALL: {
+                button.setText("Install update");
+                Drawable install = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_install, getTheme());
+                button.setIcon(install);
+                button.setEnabled(enabled);
+                UpdateInfo update = mUpdaterController.getUpdate(downloadId);
+                final boolean canInstall = Utils.isCompatible(update);
+                clickListener = enabled ? view -> {
+                    if (canInstall) {
+                        getInstallDialog(downloadId).show();
+                    } else {
+                        mHeaderMsg.setText(R.string.snack_update_not_installable);
+                    }
+                } : null;
+            }
+            break;
+            case CANCEL_INSTALLATION: {
+                button.setText("Cancel");
+                Drawable cancel = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_cancel, getTheme());
+                button.setIcon(cancel);
+                button.setEnabled(enabled);
+                clickListener = enabled ? view -> getCancelInstallationDialog(downloadId).show() : null;
+            }
+            break;
+            case REBOOT: {
+                button.setText(R.string.reboot);
+                Drawable reboot = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_restart, getTheme());
+                button.setIcon(reboot);
+                button.setEnabled(enabled);
+                clickListener = enabled ? view -> {
+                    PowerManager pm =
+                            (PowerManager) getSystemService(Context.POWER_SERVICE);
+                    pm.reboot(null);
+                } : null;
+            }
+            break;
+            case RETRY_DOWNLOAD:
+                button.setText(R.string.retry);
+                Drawable retry = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_retry, getTheme());
+                button.setIcon(retry);
+                clickListener = enabled ? view -> {
+                    mProgressText.setVisibility(View.VISIBLE);
+                    mProgressView.setVisibility(View.VISIBLE);
+                    startDownloadWithWarning(downloadId);
+                } : null;
+            break;
+            default:
+                clickListener = null;
+        }
+
+        // Disable action mode when a button is clicked
+        button.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onClick(v);
+            }
+        });
+    }
+
+    private boolean isBusy() {
+        return mUpdaterController.hasActiveDownloads() || mUpdaterController.isVerifyingUpdate()
+                || mUpdaterController.isInstallingUpdate();
+    }
+
+    private void handleNotActiveStatus(UpdateInfo update) {
+        final String downloadId = update.getDownloadId();
+        if (mUpdaterController.isWaitingForReboot(downloadId)) {
+            mHeaderMsg.setText("Reboot to finish applying update.");
+            setButtonAction(mControlButton, Action.REBOOT, downloadId, true);
+        } else if (update.getPersistentStatus() == UpdateStatus.Persistent.VERIFIED) {
+            setButtonAction(mControlButton,
+                    Utils.isCompatible(update) ? Action.INSTALL : Action.RETRY_DOWNLOAD,
+                    downloadId, !isBusy());
+        } else if (!Utils.isCompatible(update)) {
+            setButtonAction(mControlButton, Action.INFO, downloadId, !isBusy());
+        } else {
+            setButtonAction(mControlButton, Action.DOWNLOAD, downloadId, !isBusy());
+        }
+    }
+
+    private void handleActiveStatus(UpdateInfo update) {
+        final String downloadId = update.getDownloadId();
+        if (mUpdaterController.isDownloading(downloadId)) {
+            String percentage = update.getProgress() + "%";
+            setButtonAction(mControlButton, Action.PAUSE, downloadId, true);
+            mProgressView.setVisibility(View.VISIBLE);
+            mProgressView.setProgress(update.getProgress()/100.f);
+            mProgressText.setVisibility(View.VISIBLE);
+            mProgressText.setText(percentage);
+            mIdleGroupIcon.setVisibility(View.INVISIBLE);
+        } else if (mUpdaterController.isInstallingUpdate(downloadId)) {
+            setButtonAction(mControlButton, Action.CANCEL_INSTALLATION, downloadId, true);
+            boolean notAB = !mUpdaterController.isInstallingABUpdate();
+            mHeaderMsg.setText(notAB ? R.string.dialog_prepare_zip_message :
+                    update.getFinalizing() ?
+                            R.string.finalizing_package :
+                            R.string.preparing_ota_first_boot);
+            mProgressView.setVisibility(View.VISIBLE);
+            mProgressView.setProgress(update.getInstallProgress()/100.f);
+            mProgressText.setVisibility(View.VISIBLE);
+            mProgressText.setText(update.getInstallProgress() + "%");
+            mIdleGroupIcon.setVisibility(View.INVISIBLE);
+        } else if (mUpdaterController.isVerifyingUpdate(downloadId)) {
+            setButtonAction(mControlButton, Action.INSTALL, downloadId, false);
+        } else {
+            setButtonAction(mControlButton, Action.RESUME, downloadId, !isBusy());
+            mProgressView.setVisibility(View.VISIBLE);
+            mProgressView.setProgress(update.getProgress()/100.f);
+            mProgressText.setVisibility(View.VISIBLE);
+            mProgressText.setText(update.getProgress() + "%");
+            mIdleGroupIcon.setVisibility(View.INVISIBLE);
+        }
     }
 }

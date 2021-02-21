@@ -10,8 +10,9 @@
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
-        android:background="@color/scrim_background"
+        android:background="@color/header_bg"
         android:layout_width="match_parent"
+        android:elevation="0dp"
         android:layout_height="?attr/actionBarSize" />
 
     <LinearLayout
@@ -26,7 +27,8 @@
             android:layout_width="match_parent"
             android:layout_height="256dp"
             android:orientation="vertical"
-            android:background="@color/scrim_background">
+            android:showDividers="end"
+            android:background="@color/header_bg">
 
             <androidx.appcompat.widget.Toolbar
                 android:layout_width="match_parent"
@@ -52,8 +54,8 @@
                         android:translationY="24dp">
                         <co.aospa.hub.ui.UpdateProgressView
                             android:id="@+id/progress"
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
                             android:layout_gravity="center" />
 
                         <TextView
@@ -70,8 +72,8 @@
 
                         <View
                             android:id="@+id/idle_placeholder"
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
                             android:background="@drawable/ic_group"
                             android:layout_gravity="center" />
                     </FrameLayout>
@@ -96,30 +98,70 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Ruby Alpha 1"
+                        android:textSize="16sp"
                         tools:fontFamily="sans-serif"/>
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/update_version"
+    <View
         android:layout_below="@id/download_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="hello" />
+        android:layout_height="1dp"
+        android:alpha="0.6"
+        android:background="@android:color/darker_gray" />
 
-    <Button
-        android:id="@+id/control_button"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp"
-        android:text="Download"
-        android:drawableStart="@drawable/ic_download"
-        android:drawablePadding="8sp"
-        android:padding="12sp"
-        android:textColor="@color/theme_accent"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_margin="20dp"
-        android:background="@drawable/refresh_button" />
+    <LinearLayout
+        android:id="@+id/control_strip"
+        android:gravity="center_horizontal"
+        android:layout_below="@id/download_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/control_button"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Download"
+            android:elevation="0dp"
+            app:icon="@drawable/ic_download"
+            app:iconGravity="textStart"
+            app:iconPadding="20dp"
+            android:padding="12sp"
+            android:layout_margin="20dp"
+            android:gravity="center_horizontal"
+            app:strokeColor="#8EC63E"
+            app:strokeWidth="1dp"
+            app:iconTint="#8EC63E"
+            android:textColor="#8EC63E"
+            style="?android:attr/borderlessButtonStyle"
+            app:backgroundTint="@android:color/transparent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancel_button"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:elevation="0dp"
+            app:icon="@drawable/ic_cancel"
+            app:iconGravity="textStart"
+            app:iconPadding="20dp"
+            android:padding="12sp"
+            android:layout_margin="20dp"
+            android:gravity="center_horizontal"
+            app:iconTint="#8EC63E"
+            android:textColor="#8EC63E"
+            style="?android:attr/borderlessButtonStyle"
+            app:backgroundTint="@android:color/transparent" />
+
+    </LinearLayout>
+    <TextView
+        android:id="@+id/update_version"
+        android:layout_below="@id/control_strip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Version" />
 </RelativeLayout>

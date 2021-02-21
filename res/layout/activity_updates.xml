@@ -85,19 +85,20 @@
                     android:padding="16dp"
                     android:layout_gravity="bottom"
                     android:orientation="vertical">
+
                     <TextView
                         android:id="@+id/header_msg"
                         android:layout_width="match_parent"
+                        android:layout_marginEnd="130dp"
                         android:layout_height="wrap_content"
-                        android:textSize="20sp"
                         android:text="Your system is up to date."
-                        tools:fontFamily="sans-serif"
-                        android:textColor="?android:textColorPrimary"/>
+                        android:textColor="?android:textColorPrimary"
+                        android:textSize="20sp"
+                        tools:fontFamily="sans-serif" />
                     <TextView
                         android:id="@+id/version_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Ruby Alpha 1"
                         android:textSize="16sp"
                         tools:fontFamily="sans-serif"/>
                 </LinearLayout>
@@ -163,5 +164,5 @@
         android:layout_below="@id/control_strip"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Version" />
+        android:layout_marginStart="16dp" />
 </RelativeLayout>

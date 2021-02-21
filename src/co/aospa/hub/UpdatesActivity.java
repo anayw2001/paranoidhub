@@ -261,6 +261,7 @@ public class UpdatesActivity extends AppCompatActivity {
         } else {
             sortedUpdates.sort((u1, u2) -> Long.compare(u2.getTimestamp(), u1.getTimestamp()));
             mHeaderMsg.setText("System update available.");
+            mUpgradeVersion.setText("Upgrade version: " + BuildInfoUtils.getUpdateVersion(sortedUpdates.get(0)));
             mControlButton.setVisibility(View.VISIBLE);
             UpdateInfo update = sortedUpdates.get(0);
             boolean activeLayout;
@@ -558,7 +559,7 @@ public class UpdatesActivity extends AppCompatActivity {
         String buildDate = StringGenerator.getDateLocalizedUTC(this,
                 DateFormat.MEDIUM, update.getTimestamp());
         String buildInfoText = getString(R.string.list_build_version_date,
-                BuildInfoUtils.getBuildVersion(), buildDate);
+                BuildInfoUtils.getUpdateVersion(update), buildDate);
         return new AlertDialog.Builder(this)
                 .setTitle(R.string.apply_update_dialog_title)
                 .setMessage(getString(resId, buildInfoText,
@@ -611,6 +612,7 @@ public class UpdatesActivity extends AppCompatActivity {
                 } : null;
                 break;
             case PAUSE:
+                button.setText("Pause download");
                 button.setIcon(ResourcesCompat.getDrawable(getResources(), R.drawable.ic_pause, getTheme()));
                 button.setEnabled(enabled);
                 clickListener = enabled ? view -> mUpdaterController.pauseDownload(downloadId)
@@ -626,6 +628,7 @@ public class UpdatesActivity extends AppCompatActivity {
                 clickListener = enabled ? view -> {
                     if (canInstall) {
                         mUpdaterController.resumeDownload(downloadId);
+                        setButtonAction(button, Action.PAUSE, downloadId, true);
                     } else {
                         mHeaderMsg.setText(R.string.snack_update_not_installable);
                     }

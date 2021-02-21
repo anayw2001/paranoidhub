@@ -102,12 +102,11 @@ public class Utils {
     }
 
     public static boolean isCompatible(UpdateBaseInfo update) {
-        String[] signedBuilds = new String[]{"Alpha", "Beta", "Release"};
+        String[] signedBuilds = new String[]{"alpha", "beta", "release"};
         List<String> signed = Arrays.asList(signedBuilds);
         String[] upgradeVersion = update.getVersion().split("-");
         String[] currentVersion = SystemProperties.get(Constants.PROP_VERSION_CODE).split("-");
-        if (upgradeVersion[0].equalsIgnoreCase(currentVersion[0]) && upgradeVersion[1].compareToIgnoreCase(currentVersion[1]) > -1
-                && (signed.contains(upgradeVersion[4]) && signed.contains(upgradeVersion[4]))) {
+        if (upgradeVersion[0].equalsIgnoreCase(currentVersion[0]) && upgradeVersion[1].compareToIgnoreCase(currentVersion[1]) > -1) {
             Log.d(TAG, update.getName() + " is older than current Android version");
             return false;
         }
@@ -116,7 +115,7 @@ public class Utils {
             Log.d(TAG, update.getName() + " is older than/equal to the current build");
             return false;
         }
-        if (!update.getType().equalsIgnoreCase(SystemProperties.get(Constants.PROP_RELEASE_TYPE))) {
+        if (!(signed.contains(upgradeVersion[4]) && signed.contains(upgradeVersion[4]))) {
             Log.d(TAG, update.getName() + " has type " + update.getType());
             return false;
         }

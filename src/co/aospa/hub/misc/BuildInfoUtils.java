@@ -44,7 +44,6 @@ public final class BuildInfoUtils {
         variants.put("alpha", "Alpha");
         variants.put("release", "Release");
         String[] upgradeVersion = update.getVersion().split("-");
-        String ret = majorVersion + " " + upgradeVersion[1] + " " + variants.get(upgradeVersion[4]);
-        return ret;
+        return majorVersion + " " + upgradeVersion[1] + " " + variants.get(upgradeVersion[4]);
     }
 }

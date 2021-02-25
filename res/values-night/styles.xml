@@ -7,8 +7,8 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="android:windowLightStatusBar">@bool/theme_is_light</item>
         <item name="android:windowLightNavigationBar">@bool/theme_is_light</item>
-        <item name="android:windowBackground">@color/header_bg</item>
-        <item name="android:colorBackground">@color/header_bg</item>
+        <item name="android:windowBackground">@color/scrim_background</item>
+        <item name="android:colorBackground">@color/scrim_background</item>
     </style>
 
     <style name="AppTheme.NoActionBar">

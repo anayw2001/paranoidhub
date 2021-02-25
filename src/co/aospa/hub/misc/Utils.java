@@ -30,6 +30,7 @@ import android.os.Environment;
 import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.preference.PreferenceManager;
+import android.text.Html;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -39,12 +40,14 @@ import org.json.JSONObject;
 import co.aospa.hub.R;
 import co.aospa.hub.UpdatesDbHelper;
 import co.aospa.hub.controller.UpdaterService;
+import co.aospa.hub.download.DownloadClient;
 import co.aospa.hub.model.Update;
 import co.aospa.hub.model.UpdateBaseInfo;
 import co.aospa.hub.model.UpdateInfo;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +57,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -70,17 +74,6 @@ public class Utils {
 
     public static File getDownloadPath(Context context) {
         return new File(context.getString(R.string.download_path));
-    }
-
-    public static File getExportPath(Context context) {
-        File dir = new File(Environment.getExternalStorageDirectory(),
-                context.getString(R.string.export_path));
-        if (!dir.isDirectory()) {
-            if (dir.exists() || !dir.mkdirs()) {
-                throw new RuntimeException("Could not create directory");
-            }
-        }
-        return dir;
     }
 
     public static File getCachedUpdateList(Context context) {
@@ -120,6 +113,12 @@ public class Utils {
             return false;
         }
         return true;
+    }
+
+    public static boolean canInstall(UpdateBaseInfo update) {
+        return (SystemProperties.getBoolean(Constants.PROP_UPDATER_ALLOW_DOWNGRADING, false) ||
+                update.getTimestamp() > SystemProperties.getLong(Constants.PROP_BUILD_DATE, 0)) &&
+                isCompatible(update);
     }
 
     public static List<UpdateInfo> parseJson(File file, boolean compatibleOnly)
@@ -169,9 +168,26 @@ public class Utils {
                 .replace("{type}", type);
     }
 
-    public static String getChangelogURL(Context context) {
-        String device = SystemProperties.get(Constants.PROP_DEVICE);
-        return context.getString(R.string.menu_changelog_url, device);
+    public static String parseChangelogJson(File toRead) {
+        String ret = "";
+        try (BufferedReader br = new BufferedReader(new FileReader(toRead))) {
+            for (String line; (line = br.readLine()) != null;) {
+                ret += line;
+            }
+        } catch (IOException e) {
+            Log.e(TAG, e.toString());
+            Log.e(TAG, "Could not parse file text.");
+        }
+        try {
+            JSONObject obj = new JSONObject(ret);
+            JSONArray arr = obj.getJSONArray("ota_configuration");
+            String changelog = arr.getJSONObject(0).getString("info");
+            toRead.delete();
+            return Html.fromHtml(changelog, Html.FROM_HTML_MODE_COMPACT).toString();
+        } catch (JSONException e) {
+            Log.e(TAG, "Could not parse changelog json.");
+        }
+        return ret;
     }
 
     public static void triggerUpdate(Context context, String downloadId) {

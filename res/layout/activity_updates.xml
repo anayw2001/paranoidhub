@@ -5,164 +5,183 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context=".UpdatesActivity">
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:background="@color/header_bg"
-        android:layout_width="match_parent"
-        android:elevation="0dp"
-        android:layout_height="?attr/actionBarSize" />
-
-    <LinearLayout
+    android:orientation="vertical">
+    <FrameLayout
         android:id="@+id/download_header"
         android:orientation="vertical"
         android:showDividers="end"
-        android:layout_below="@id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="256dp"
             android:orientation="vertical"
             android:showDividers="end"
-            android:background="@color/header_bg">
-
+            android:background="@color/scrim_background">
             <androidx.appcompat.widget.Toolbar
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:alpha="0.0" />
-
+                android:id="@+id/toolbar"
+                android:elevation="0dp"
+                android:layout_height="?attr/actionBarSize" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1">
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="-24dp">
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="0dp"
-                        android:background="@drawable/ui_phone"
-                        android:layout_marginEnd="16dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintDimensionRatio="9:16"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        android:translationY="24dp">
-                        <co.aospa.hub.ui.UpdateProgressView
-                            android:id="@+id/progress"
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:layout_gravity="center" />
-
-                        <TextView
-                            android:id="@+id/progress_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:fontFamily="google-sans-medium"
-                            android:text="0%"
-                            android:textColor="@color/theme_accent"
-                            android:textSize="20sp"
-                            android:fontFeatureSettings="tnum"
-                            tools:fontFamily="sans-serif" />
-
-                        <View
-                            android:id="@+id/idle_placeholder"
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:background="@drawable/ic_group"
-                            android:layout_gravity="center" />
-                    </FrameLayout>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
+                android:layout_height="match_parent">
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:layout_gravity="bottom"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/header_msg"
-                        android:layout_width="match_parent"
-                        android:layout_marginEnd="130dp"
-                        android:layout_height="wrap_content"
-                        android:text="Your system is up to date."
-                        android:textColor="?android:textColorPrimary"
-                        android:textSize="20sp"
-                        tools:fontFamily="sans-serif" />
-                    <TextView
-                        android:id="@+id/version_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="16sp"
-                        tools:fontFamily="sans-serif"/>
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingStart="16dp"
+                            android:paddingBottom="16dp">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:id="@+id/header_msg"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="System Update"
+                                    android:textColor="?android:textColorPrimary"
+                                    android:textSize="18sp"
+                                    tools:fontFamily="sans-serif-medium" />
+                                <TextView
+                                    android:id="@+id/version_text"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="PA11B"
+                                    android:textColor="?android:textColorSecondary"
+                                    android:textSize="12sp"
+                                    tools:fontFamily="sans-serif"/>
+                            </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom"
+                                android:orientation="vertical">
+                                <com.google.android.material.button.MaterialButton
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:id="@+id/control_button"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="36dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:text="Download"
+                                    app:iconGravity="textStart"
+                                    app:iconTint="@*android:color/accent_device_default"
+                                    android:textColor="@*android:color/accent_device_default"
+                                    app:strokeColor="@*android:color/accent_device_default"
+                                    app:rippleColor="#00796b"
+                                    app:icon="@drawable/ic_download"
+                                    app:iconSize="18dp" />
+                            </LinearLayout>
+                        </FrameLayout>
+                    </LinearLayout>
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="match_parent"
+                        android:layout_marginTop="-24dp">
+                        <FrameLayout
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:background="@drawable/ui_phone"
+                            android:layout_marginRight="16dp"
+                            android:layout_marginEnd="16dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintDimensionRatio="9:16"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            android:translationY="24dp">
+                            <co.aospa.hub.ui.UpdateProgressView
+                                android:id="@+id/progress"
+                                android:layout_width="80dp"
+                                android:layout_height="80dp"
+                                android:layout_gravity="center" />
+                            <View
+                                android:id="@+id/idle_placeholder"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/ic_group"
+                                android:layout_gravity="center" />
+                            <TextView
+                                android:id="@+id/progress_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:fontFamily="google-sans-medium"
+                                android:text="0%"
+                                android:textColor="@color/theme_accent"
+                                android:textSize="20sp"
+                                android:fontFeatureSettings="tnum"
+                                tools:fontFamily="sans-serif" />
+                        </FrameLayout>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
-    </LinearLayout>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_gravity="bottom"
+            android:alpha="0.12"
+            android:background="@color/divider_color" />
 
-    <View
-        android:layout_below="@id/download_header"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:alpha="0.6"
-        android:background="@android:color/darker_gray" />
+    </FrameLayout>
 
     <LinearLayout
-        android:id="@+id/control_strip"
-        android:gravity="center_horizontal"
+        android:id="@+id/changelog_strip"
         android:layout_below="@id/download_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/control_button"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp" >
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Download"
-            android:elevation="0dp"
-            app:icon="@drawable/ic_download"
-            app:iconGravity="textStart"
-            app:iconPadding="20dp"
-            android:padding="12sp"
-            android:layout_margin="20dp"
-            android:gravity="center_horizontal"
-            app:strokeColor="#8EC63E"
-            app:strokeWidth="1dp"
-            app:iconTint="#8EC63E"
-            android:textColor="#8EC63E"
-            style="?android:attr/borderlessButtonStyle"
-            app:backgroundTint="@android:color/transparent" />
+            android:text="Changelog"
+            android:textSize="12sp"
+            android:textFontWeight="500"
+            android:letterSpacing="0.15"
+            android:textColor="@color/inverted"
+            android:textAllCaps="true"
+            tools:font="Roboto"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/cancel_button"
+        <View
             android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Cancel"
-            android:elevation="0dp"
-            app:icon="@drawable/ic_cancel"
-            app:iconGravity="textStart"
-            app:iconPadding="20dp"
-            android:padding="12sp"
-            android:layout_margin="20dp"
-            android:gravity="center_horizontal"
-            app:iconTint="#8EC63E"
-            android:textColor="#8EC63E"
-            style="?android:attr/borderlessButtonStyle"
-            app:backgroundTint="@android:color/transparent" />
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
+        <TextView
+            android:id="@+id/upgrade_version"
+            android:layout_gravity="end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textFontWeight="500"
+            android:letterSpacing="0.15"
+            android:textAllCaps="true"
+            tools:font="Roboto"
+            tools:text="Version: PA11B" />
     </LinearLayout>
+
     <TextView
-        android:id="@+id/update_version"
-        android:layout_below="@id/control_strip"
+        android:layout_below="@id/changelog_strip"
+        android:id="@+id/changelog"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp" />
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:layout_marginTop="10dp"
+        tools:text="Initial beta build" />
+
 </RelativeLayout>

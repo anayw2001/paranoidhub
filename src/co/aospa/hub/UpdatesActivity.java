@@ -134,7 +134,7 @@ public class UpdatesActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (UpdaterController.ACTION_UPDATE_STATUS.equals(intent.getAction())) {
                     String downloadId = intent.getStringExtra(UpdaterController.EXTRA_DOWNLOAD_ID);
-                    handleDownloadStatusChange(downloadId);
+                    handleUpdateStatusChange(downloadId);
                 } else if (UpdaterController.ACTION_DOWNLOAD_PROGRESS.equals(intent.getAction()) ||
                         UpdaterController.ACTION_INSTALL_PROGRESS.equals(intent.getAction())) {
                     String downloadId = intent.getStringExtra(UpdaterController.EXTRA_DOWNLOAD_ID);
@@ -412,7 +412,7 @@ public class UpdatesActivity extends AppCompatActivity {
         downloadClient.start();
     }
 
-    private void handleDownloadStatusChange(String downloadId) {
+    private void handleUpdateStatusChange(String downloadId) {
         if (mUpdaterController == null) {
             mUpdaterController = UpdaterController.getInstance();
         }
@@ -424,12 +424,14 @@ public class UpdatesActivity extends AppCompatActivity {
                 mProgressText.setVisibility(View.INVISIBLE);
                 mIdleGroupIcon.setVisibility(View.VISIBLE);
                 setButtonAction(mControlButton, Action.REBOOT, downloadId, true);
+                break;
             case PAUSED:
                 mHeaderMsg.setText("Update download paused.");
                 mProgressView.setVisibility(View.INVISIBLE);
                 mProgressText.setVisibility(View.INVISIBLE);
                 mIdleGroupIcon.setVisibility(View.VISIBLE);
                 setButtonAction(mControlButton, Action.RESUME, downloadId, true);
+                break;
             case PAUSED_ERROR:
                 mHeaderMsg.setText(R.string.snack_download_failed);
                 mProgressView.setVisibility(View.INVISIBLE);
@@ -816,7 +818,6 @@ public class UpdatesActivity extends AppCompatActivity {
     private void handleActiveStatus(UpdateInfo update) {
         final String downloadId = update.getDownloadId();
         if (mUpdaterController.isWaitingForReboot(downloadId)) {
-            mRefreshIconView.setVisibility(View.INVISIBLE);
             mHeaderMsg.setText("Reboot to finish applying update.");
             mProgressText.setVisibility(View.INVISIBLE);
             mProgressView.setVisibility(View.INVISIBLE);
@@ -843,8 +844,13 @@ public class UpdatesActivity extends AppCompatActivity {
             mProgressText.setText(update.getInstallProgress() + "%");
             mIdleGroupIcon.setVisibility(View.INVISIBLE);
         } else if (mUpdaterController.isVerifyingUpdate(downloadId)) {
+            mHeaderMsg.setText("Verifying update...");
+            mProgressText.setVisibility(View.INVISIBLE);
+            mProgressView.setVisibility(View.INVISIBLE);
+            mIdleGroupIcon.setVisibility(View.VISIBLE);
             setButtonAction(mControlButton, Action.INSTALL, downloadId, false);
         } else {
+            mHeaderMsg.setText("Update download paused.");
             setButtonAction(mControlButton, Action.RESUME, downloadId, !isBusy());
             mProgressView.setVisibility(View.VISIBLE);
             mProgressView.setProgress(update.getProgress()/100.f);
